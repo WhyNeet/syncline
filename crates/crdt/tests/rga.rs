@@ -6,7 +6,10 @@ pub fn single_actor_rga_right_insertion_works() {
     let mut rga = Rga::new(actor_id);
 
     for (idx, c) in "Hello, world!".chars().enumerate() {
-        rga.insert(RgaInsertQuery::Right((actor_id, idx as u64)), c, None);
+        assert!(
+            rga.insert(RgaInsertQuery::Right((actor_id, idx as u64)), c, None)
+                .is_some()
+        );
     }
 
     assert_eq!(rga.to_string(), "Hello, world!");
@@ -21,18 +24,30 @@ pub fn single_actor_rga_middle_insertion_works() {
     let mut chars = input.chars();
 
     let first = chars.next().unwrap();
-    let start_id = rga.insert(RgaInsertQuery::Right((actor_id, 0)), first, None);
+    let start_id = {
+        let id = rga.insert(RgaInsertQuery::Right((actor_id, 0)), first, None);
+        assert!(id.is_some());
+        id.unwrap()
+    };
 
     let middle = chars.by_ref().take(input.len() - 2).collect::<Vec<_>>();
 
     let end = chars.next().unwrap();
 
-    let end_id = rga.insert(RgaInsertQuery::Right(start_id), end, None);
+    let end_id = {
+        let id = rga.insert(RgaInsertQuery::Right(start_id), end, None);
+        assert!(id.is_some());
+        id.unwrap()
+    };
 
     let mut start_id = start_id;
 
     for c in middle {
-        start_id = rga.insert(RgaInsertQuery::Middle(start_id, end_id), c, None);
+        start_id = {
+            let id = rga.insert(RgaInsertQuery::Middle(start_id, end_id), c, None);
+            assert!(id.is_some());
+            id.unwrap()
+        };
     }
 
     assert_eq!(rga.to_string(), "Hello, world!");
@@ -48,7 +63,11 @@ pub fn multi_actor_rga_left_insertion_works() {
     // Insert "Hello" as current actor
     let mut prev_id = (current_actor_id, 0);
     for c in "Hello".chars() {
-        prev_id = rga.insert(RgaInsertQuery::Right(prev_id), c, None);
+        prev_id = {
+            let id = rga.insert(RgaInsertQuery::Right(prev_id), c, None);
+            assert!(id.is_some());
+            id.unwrap()
+        };
     }
 
     // Current actor wants to put 'a' after letter 'H'
@@ -58,15 +77,21 @@ pub fn multi_actor_rga_left_insertion_works() {
     // Edit from current actor comes first, edit from last actor comes second
     {
         let mut rga = rga.clone();
-        rga.insert(
-            RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
-            'a',
-            None,
+        assert!(
+            rga.insert(
+                RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
+                'a',
+                None,
+            )
+            .is_some()
         );
-        rga.insert(
-            RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
-            'b',
-            Some(other_actor_id),
+        assert!(
+            rga.insert(
+                RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
+                'b',
+                Some(other_actor_id),
+            )
+            .is_some()
         );
         assert_eq!(rga.to_string(), "Habello");
     }
@@ -75,16 +100,36 @@ pub fn multi_actor_rga_left_insertion_works() {
     // Edit from current actor comes second, edit from last actor comes first
     {
         let mut rga = rga.clone();
-        rga.insert(
-            RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
-            'b',
-            Some(other_actor_id),
+        assert!(
+            rga.insert(
+                RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
+                'b',
+                Some(other_actor_id),
+            )
+            .is_some()
         );
-        rga.insert(
-            RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
-            'a',
-            None,
+        assert!(
+            rga.insert(
+                RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
+                'a',
+                None,
+            )
+            .is_some()
         );
         assert_eq!(rga.to_string(), "Habello");
     }
+}
+
+#[test]
+pub fn single_actor_rga_deletion_works() {
+    let actor_id = 0;
+    let mut rga = Rga::new(actor_id);
+
+    for (idx, c) in "Hello, world!".chars().enumerate() {
+        rga.insert(RgaInsertQuery::Right((actor_id, idx as u64)), c, None);
+    }
+
+    rga.delete((actor_id, 6));
+
+    assert_eq!(rga.to_string(), "Hello world!");
 }
