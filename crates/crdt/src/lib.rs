@@ -30,7 +30,7 @@ impl<T: Default + Debug> Rga<T> {
         query: RgaInsertQuery,
         contents: T,
         actor_id: Option<ActorId>,
-    ) -> RgaUnitId {
+    ) -> Option<RgaUnitId> {
         let Some(prev_unit) = (match query {
             RgaInsertQuery::Right(id) => {
                 let mut unit = &mut self.root;
@@ -99,7 +99,7 @@ impl<T: Default + Debug> Rga<T> {
                 }
             }
         }) else {
-            panic!("no unit with this id exists.");
+            return None;
         };
 
         self.clock += 1;
@@ -113,7 +113,21 @@ impl<T: Default + Debug> Rga<T> {
         };
         prev_unit.next.replace(Box::new(new_unit));
 
-        id
+        Some(id)
+    }
+
+    pub fn delete(&mut self, id: RgaUnitId) {
+        let mut unit = &mut self.root;
+
+        while unit.id != id {
+            if let Some(ref mut next) = unit.next {
+                unit = next;
+            } else {
+                return;
+            }
+        }
+
+        unit.is_tombstone = true;
     }
 }
 
@@ -124,7 +138,9 @@ impl<T: Default + Debug + Display> fmt::Display for Rga<T> {
         };
         let mut unit = unit;
         loop {
-            write!(f, "{}", unit.contents)?;
+            if !unit.is_tombstone {
+                write!(f, "{}", unit.contents)?;
+            }
 
             if let Some(ref next) = unit.next {
                 unit = next;
