@@ -1,6 +1,6 @@
 use std::fmt::{self, Debug, Display};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Rga<T: Debug> {
     root: Box<RgaUnit<T>>,
     clock: ActorClock,
@@ -25,14 +25,30 @@ impl<T: Default + Debug> Rga<T> {
         &self.root
     }
 
-    pub fn insert(&mut self, query: RgaInsertQuery, contents: T) -> RgaUnitId {
+    pub fn insert(
+        &mut self,
+        query: RgaInsertQuery,
+        contents: T,
+        actor_id: Option<ActorId>,
+    ) -> RgaUnitId {
         let Some(prev_unit) = (match query {
-            RgaInsertQuery::Left(id) => {
+            RgaInsertQuery::Right(id) => {
                 let mut unit = &mut self.root;
 
                 loop {
                     if unit.id == id {
-                        break Some(unit);
+                        let mut prev = unit;
+                        break loop {
+                            let next = prev.next.as_ref();
+
+                            if next.is_none()
+                                || actor_id.unwrap_or(self.actor_id) <= next.unwrap().id.0
+                            {
+                                break Some(prev);
+                            }
+
+                            prev = prev.next.as_mut().unwrap();
+                        };
                     }
 
                     if let Some(ref mut next) = unit.next {
@@ -40,22 +56,6 @@ impl<T: Default + Debug> Rga<T> {
                     } else {
                         break None;
                     }
-                }
-            }
-            RgaInsertQuery::Right(id) => {
-                let mut prev = &mut self.root;
-
-                loop {
-                    let next = match prev.next.as_ref() {
-                        Some(next) => next,
-                        _ => break None,
-                    };
-
-                    if next.id == id {
-                        break Some(prev);
-                    }
-
-                    prev = prev.next.as_mut().unwrap();
                 }
             }
             RgaInsertQuery::Middle(left_id, right_id) => {
@@ -70,7 +70,7 @@ impl<T: Default + Debug> Rga<T> {
 
                         if next.id != right_id {
                             // resolve conflict
-                            let mut prev = &mut self.root;
+                            let mut prev = unit;
 
                             break loop {
                                 let next = match prev.next.as_ref() {
@@ -78,7 +78,9 @@ impl<T: Default + Debug> Rga<T> {
                                     _ => break None,
                                 };
 
-                                if next.id == right_id || self.actor_id <= next.id.0 {
+                                if next.id == right_id
+                                    || actor_id.unwrap_or(self.actor_id) <= next.id.0
+                                {
                                     break Some(prev);
                                 }
 
@@ -102,7 +104,7 @@ impl<T: Default + Debug> Rga<T> {
 
         self.clock += 1;
         let tmp_next = prev_unit.next.take();
-        let id = (self.actor_id, self.clock);
+        let id = (actor_id.unwrap_or(self.actor_id), self.clock);
         let new_unit = RgaUnit {
             contents,
             id,
@@ -136,7 +138,6 @@ impl<T: Default + Debug + Display> fmt::Display for Rga<T> {
 }
 
 pub enum RgaInsertQuery {
-    Left(RgaUnitId),
     Right(RgaUnitId),
     Middle(RgaUnitId, RgaUnitId),
 }
@@ -145,7 +146,7 @@ pub type ActorId = u64;
 pub type ActorClock = u64;
 pub type RgaUnitId = (ActorId, ActorClock);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RgaUnit<T: Debug> {
     pub next: Option<Box<RgaUnit<T>>>,
     pub is_tombstone: bool,
