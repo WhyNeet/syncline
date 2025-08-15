@@ -12,7 +12,7 @@ async fn main() -> io::Result<()> {
         .parse_default_env()
         .init();
 
-    let app_state = Arc::new(AppState {});
+    let app_state = Arc::new(AppState::default());
     let router = Router::new()
         .nest("/api", routes::router())
         .with_state(app_state);
