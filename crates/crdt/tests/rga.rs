@@ -7,7 +7,7 @@ pub fn single_actor_rga_right_insertion_works() {
 
     for (idx, c) in "Hello, world!".chars().enumerate() {
         assert!(
-            rga.insert(RgaInsertQuery::Right((actor_id, idx as u64)), c, None)
+            rga.insert(RgaInsertQuery::Right((actor_id, idx as u64)), c, None, None)
                 .is_some()
         );
     }
@@ -25,7 +25,7 @@ pub fn single_actor_rga_middle_insertion_works() {
 
     let first = chars.next().unwrap();
     let start_id = {
-        let id = rga.insert(RgaInsertQuery::Right((actor_id, 0)), first, None);
+        let id = rga.insert(RgaInsertQuery::Right((actor_id, 0)), first, None, None);
         assert!(id.is_some());
         id.unwrap()
     };
@@ -35,7 +35,7 @@ pub fn single_actor_rga_middle_insertion_works() {
     let end = chars.next().unwrap();
 
     let end_id = {
-        let id = rga.insert(RgaInsertQuery::Right(start_id), end, None);
+        let id = rga.insert(RgaInsertQuery::Right(start_id), end, None, None);
         assert!(id.is_some());
         id.unwrap()
     };
@@ -44,7 +44,7 @@ pub fn single_actor_rga_middle_insertion_works() {
 
     for c in middle {
         start_id = {
-            let id = rga.insert(RgaInsertQuery::Middle(start_id, end_id), c, None);
+            let id = rga.insert(RgaInsertQuery::Middle(start_id, end_id), c, None, None);
             assert!(id.is_some());
             id.unwrap()
         };
@@ -64,7 +64,7 @@ pub fn multi_actor_rga_left_insertion_works() {
     let mut prev_id = (current_actor_id, 0);
     for c in "Hello".chars() {
         prev_id = {
-            let id = rga.insert(RgaInsertQuery::Right(prev_id), c, None);
+            let id = rga.insert(RgaInsertQuery::Right(prev_id), c, None, None);
             assert!(id.is_some());
             id.unwrap()
         };
@@ -82,6 +82,7 @@ pub fn multi_actor_rga_left_insertion_works() {
                 RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
                 'a',
                 None,
+                None
             )
             .is_some()
         );
@@ -90,6 +91,7 @@ pub fn multi_actor_rga_left_insertion_works() {
                 RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
                 'b',
                 Some(other_actor_id),
+                None
             )
             .is_some()
         );
@@ -105,6 +107,7 @@ pub fn multi_actor_rga_left_insertion_works() {
                 RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
                 'b',
                 Some(other_actor_id),
+                None
             )
             .is_some()
         );
@@ -113,6 +116,7 @@ pub fn multi_actor_rga_left_insertion_works() {
                 RgaInsertQuery::Middle((current_actor_id, 1), (current_actor_id, 2)),
                 'a',
                 None,
+                None
             )
             .is_some()
         );
@@ -126,7 +130,7 @@ pub fn single_actor_rga_deletion_works() {
     let mut rga = Rga::new(actor_id);
 
     for (idx, c) in "Hello, world!".chars().enumerate() {
-        rga.insert(RgaInsertQuery::Right((actor_id, idx as u64)), c, None);
+        rga.insert(RgaInsertQuery::Right((actor_id, idx as u64)), c, None, None);
     }
 
     rga.delete((actor_id, 6));
@@ -140,7 +144,7 @@ pub fn rga_compaction_works() {
     let mut rga = Rga::new(actor_id);
 
     for (idx, c) in "Hello, world!".chars().enumerate() {
-        rga.insert(RgaInsertQuery::Right((actor_id, idx as u64)), c, None);
+        rga.insert(RgaInsertQuery::Right((actor_id, idx as u64)), c, None, None);
     }
 
     rga.delete((actor_id, 6));
@@ -150,6 +154,7 @@ pub fn rga_compaction_works() {
             RgaInsertQuery::Middle((actor_id, 7), (actor_id, 8)),
             ' ',
             None,
+            None
         )
         .is_some()
     );
@@ -160,6 +165,7 @@ pub fn rga_compaction_works() {
         rga.insert(
             RgaInsertQuery::Middle((actor_id, 7), (actor_id, 8)),
             ' ',
+            None,
             None
         )
         .is_none()
