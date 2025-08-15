@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    // File Layout
+    "rootDir": "./",
+    "outDir": "./dist",
+    // Environment Settings
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES6",
+    "types": [],
+    // Other Outputs
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    // Stricter Typechecking Options
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    // Style Options
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": true,
+    // Recommended Options
+    "strict": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "noUncheckedSideEffectImports": true,
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+  }
+}
