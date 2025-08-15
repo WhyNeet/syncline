@@ -9,6 +9,9 @@ pub enum RealtimeEventKind {
         contents: char,
         query: RgaInsertQuery,
     },
+    Delete {
+        id: RgaUnitId,
+    },
 }
 
 #[derive(Debug, Clone)]
