@@ -1,5 +1,7 @@
 use std::fmt::{self, Debug, Display};
 
+use serde::{Deserialize, Serialize};
+
 #[derive(Debug, Clone)]
 pub struct Rga<T: Debug> {
     root: Box<RgaUnit<T>>,
@@ -25,11 +27,16 @@ impl<T: Default + Debug> Rga<T> {
         &self.root
     }
 
+    pub fn clock(&self) -> ActorClock {
+        self.clock
+    }
+
     pub fn insert(
         &mut self,
         query: RgaInsertQuery,
         contents: T,
         actor_id: Option<ActorId>,
+        id: Option<ActorClock>,
     ) -> Option<RgaUnitId> {
         let Some(prev_unit) = (match query {
             RgaInsertQuery::Right(id) => {
@@ -102,18 +109,23 @@ impl<T: Default + Debug> Rga<T> {
             return None;
         };
 
-        self.clock += 1;
+        if let Some(id) = id {
+            id
+        } else {
+            self.clock += 1;
+            self.clock
+        };
         let tmp_next = prev_unit.next.take();
-        let id = (actor_id.unwrap_or(self.actor_id), self.clock);
+        let unit_id = (actor_id.unwrap_or(self.actor_id), id.unwrap_or(self.clock));
         let new_unit = RgaUnit {
             contents,
-            id,
+            id: unit_id,
             next: tmp_next,
             is_tombstone: false,
         };
         prev_unit.next.replace(Box::new(new_unit));
 
-        Some(id)
+        Some(unit_id)
     }
 
     pub fn delete(&mut self, id: RgaUnitId) {
@@ -176,6 +188,7 @@ impl<T: Default + Debug + Display> fmt::Display for Rga<T> {
     }
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub enum RgaInsertQuery {
     Right(RgaUnitId),
     Middle(RgaUnitId, RgaUnitId),
