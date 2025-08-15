@@ -1,6 +1,7 @@
-use std::{env, io};
+use std::{env, io, sync::Arc};
 
 use axum::Router;
+use realtime::{routes, state::AppState};
 use tokio::net::TcpListener;
 use tracing::log::LevelFilter;
 
@@ -11,7 +12,10 @@ async fn main() -> io::Result<()> {
         .parse_default_env()
         .init();
 
-    let router = Router::new();
+    let app_state = Arc::new(AppState {});
+    let router = Router::new()
+        .nest("/api", routes::router())
+        .with_state(app_state);
 
     let port = env::var("PORT")
         .ok()

@@ -143,6 +143,9 @@ dependencies = [
 [[package]]
 name = "crdt"
 version = "0.1.0"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "crypto-common"
@@ -548,7 +551,10 @@ name = "realtime"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "crdt",
  "pretty_env_logger",
+ "serde",
+ "serde_json",
  "tokio",
  "tracing",
 ]
