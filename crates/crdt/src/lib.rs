@@ -38,7 +38,7 @@ impl<T: Default + Debug> Rga<T> {
         actor_id: Option<ActorId>,
         id: Option<ActorClock>,
     ) -> Option<RgaUnitId> {
-        let Some(prev_unit) = (match query {
+        let prev_unit = match query {
             RgaInsertQuery::Right(id) => {
                 let mut unit = &mut self.root;
 
@@ -105,9 +105,7 @@ impl<T: Default + Debug> Rga<T> {
                     }
                 }
             }
-        }) else {
-            return None;
-        };
+        }?;
 
         if let Some(id) = id {
             id
@@ -150,12 +148,7 @@ impl<T: Default + Debug> Rga<T> {
     pub fn compact(&mut self) {
         let mut unit = &mut self.root;
 
-        loop {
-            let next = match unit.next.as_mut() {
-                Some(next) => next,
-                _ => break,
-            };
-
+        while let Some(next) = unit.next.as_mut() {
             if next.is_tombstone {
                 let next_next = next.next.take();
                 unit.next = next_next;
