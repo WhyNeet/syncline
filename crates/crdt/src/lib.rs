@@ -117,6 +117,11 @@ impl<T: Default + Debug> Rga<T> {
     }
 
     pub fn delete(&mut self, id: RgaUnitId) {
+        if id.1 == 0 {
+            // don't delete the root, its empty anyways
+            return;
+        }
+
         let mut unit = &mut self.root;
 
         while unit.id != id {
@@ -128,6 +133,24 @@ impl<T: Default + Debug> Rga<T> {
         }
 
         unit.is_tombstone = true;
+    }
+
+    pub fn compact(&mut self) {
+        let mut unit = &mut self.root;
+
+        loop {
+            let next = match unit.next.as_mut() {
+                Some(next) => next,
+                _ => break,
+            };
+
+            if next.is_tombstone {
+                let next_next = next.next.take();
+                unit.next = next_next;
+            } else if let Some(ref mut next) = unit.next {
+                unit = next;
+            }
+        }
     }
 }
 
