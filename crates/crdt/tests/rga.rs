@@ -133,3 +133,37 @@ pub fn single_actor_rga_deletion_works() {
 
     assert_eq!(rga.to_string(), "Hello world!");
 }
+
+#[test]
+pub fn rga_compaction_works() {
+    let actor_id = 0;
+    let mut rga = Rga::new(actor_id);
+
+    for (idx, c) in "Hello, world!".chars().enumerate() {
+        rga.insert(RgaInsertQuery::Right((actor_id, idx as u64)), c, None);
+    }
+
+    rga.delete((actor_id, 6));
+    rga.delete((actor_id, 7));
+    assert!(
+        rga.insert(
+            RgaInsertQuery::Middle((actor_id, 7), (actor_id, 8)),
+            ' ',
+            None,
+        )
+        .is_some()
+    );
+
+    rga.compact();
+
+    assert!(
+        rga.insert(
+            RgaInsertQuery::Middle((actor_id, 7), (actor_id, 8)),
+            ' ',
+            None
+        )
+        .is_none()
+    );
+
+    assert_eq!(rga.to_string(), "Hello world!");
+}
