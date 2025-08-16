@@ -183,6 +183,7 @@ impl<T: Default + Debug + Display> fmt::Display for Rga<T> {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(untagged)]
 pub enum RgaInsertQuery {
     Right(RgaUnitId),
     Middle(RgaUnitId, RgaUnitId),
