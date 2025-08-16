@@ -25,17 +25,7 @@ export class Rga<T> {
         let unit = this._root;
 
         while (true) {
-          if (idUtil.equal(unit.id, id)) {
-            let prev = unit;
-            while (true) {
-              let next = prev.next;
-              if (next === null || actorId < next.id[0]) {
-                return prev;
-              }
-
-              prev = next;
-            }
-          }
+          if (idUtil.equal(unit.id, id)) return unit;
 
           if (unit.next !== null) {
             unit = unit.next;
@@ -82,6 +72,18 @@ export class Rga<T> {
     prevUnit.next = newUnit;
 
     return unitId;
+  }
+
+  public queryAt(index: number): RgaUnit<T> | null {
+    let current = 0;
+    let unit = this._root;
+    while (true) {
+      if (current === index) return unit;
+      if (unit.next) {
+        unit = unit.next;
+        if (!unit.isTombstone) current++;
+      } else return null;
+    }
   }
 
   public delete(id: RgaUnitId) {
