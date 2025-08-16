@@ -17,7 +17,7 @@ const DOCUMENT_COMPACTION_MIN_INTERVAL: u64 = 60000;
 
 pub struct Document {
     state: Mutex<Rga<char>>,
-    num_actors: AtomicU64,
+    max_actor_id: AtomicU64,
     last_compaction: AtomicU64,
     sender: broadcast::Sender<RealtimeEvent>,
     receiver: broadcast::Receiver<RealtimeEvent>,
@@ -29,7 +29,7 @@ impl Document {
         Self {
             state: Mutex::new(state),
             sender,
-            num_actors: Default::default(),
+            max_actor_id: Default::default(),
             receiver,
             last_compaction: Default::default(),
         }
@@ -68,10 +68,12 @@ impl Document {
     }
 
     pub fn new_actor(&self) -> u64 {
-        self.num_actors.fetch_add(1, Ordering::Relaxed) + 1
+        self.max_actor_id.fetch_add(1, Ordering::Relaxed) + 1
     }
 
-    pub fn remove_actor(&self) {
-        self.num_actors.fetch_sub(1, Ordering::Relaxed);
+    pub fn remove_actor(&self, id: u64) {
+        if self.max_actor_id.load(Ordering::Relaxed) <= id {
+            self.max_actor_id.fetch_sub(1, Ordering::Relaxed);
+        }
     }
 }

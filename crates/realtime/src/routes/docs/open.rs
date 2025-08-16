@@ -130,11 +130,11 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, id: String) {
 
     tokio::select! {
       _ = recv_task => {
-        document.remove_actor();
+        document.remove_actor(actor_id);
         shutdown_tx.send(()).unwrap();
       },
       _ = send_task => {
-        document.remove_actor();
+        document.remove_actor(actor_id);
         shutdown_tx.send(()).unwrap();
       },
     }
