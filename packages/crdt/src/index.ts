@@ -49,17 +49,17 @@ export class Rga<T> {
       let unit = this._root;
 
       while (true) {
-        if (unit.id === leftId) {
+        if (idUtil.equal(unit.id, leftId)) {
           let next = unit.next;
           if (!next) return null;
-          if (next.id !== rightId) {
+          if (!idUtil.equal(next.id, rightId)) {
             let prev = unit;
 
             while (true) {
               let next = prev.next;
               if (!next) return null;
 
-              if (next.id === rightId || actorId < next.id[0]) return prev;
+              if (idUtil.equal(next.id, rightId) || actorId < next.id[0]) return prev;
               prev = next;
             }
           }
@@ -82,6 +82,19 @@ export class Rga<T> {
     prevUnit.next = newUnit;
 
     return unitId;
+  }
+
+  public delete(id: RgaUnitId) {
+    if (id[1] === 0) return;
+
+    let unit = this._root;
+
+    while (!idUtil.equal(unit.id, id)) {
+      if (unit.next !== null) unit = unit.next;
+      else return;
+    }
+
+    unit.isTombstone = true;
   }
 
   public toString(): string {
