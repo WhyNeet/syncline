@@ -44,18 +44,19 @@ impl<T: Default + Debug> Rga<T> {
 
                 loop {
                     if unit.id == id {
-                        let mut prev = unit;
-                        break loop {
-                            let next = prev.next.as_ref();
+                        break Some(unit);
+                        // let mut prev = unit;
+                        // break loop {
+                        //     let next = prev.next.as_ref();
 
-                            if next.is_none()
-                                || actor_id.unwrap_or(self.actor_id) <= next.unwrap().id.0
-                            {
-                                break Some(prev);
-                            }
+                        //     if next.is_none()
+                        //         || actor_id.unwrap_or(self.actor_id) <= next.unwrap().id.0
+                        //     {
+                        //         break Some(prev);
+                        //     }
 
-                            prev = prev.next.as_mut().unwrap();
-                        };
+                        //     prev = prev.next.as_mut().unwrap();
+                        // };
                     }
 
                     if let Some(ref mut next) = unit.next {
