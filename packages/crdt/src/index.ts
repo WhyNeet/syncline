@@ -97,6 +97,19 @@ export class Rga<T> {
     unit.isTombstone = true;
   }
 
+  public compact() {
+    let unit = this._root;
+
+    while (unit.next !== null) {
+      if (unit.next.isTombstone) {
+        let next_next = unit.next.next;
+        unit.next = next_next;
+      } else {
+        unit = unit.next;
+      }
+    }
+  }
+
   public toString(): string {
     let result = "";
     if (this._root.next === null) {
