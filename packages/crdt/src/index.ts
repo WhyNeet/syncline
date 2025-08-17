@@ -5,11 +5,13 @@ export class Rga<T> {
   private _clock: ActorClock;
   private _actorId: ActorId;
   private _root: RgaUnit<T>;
+  private _version: VersionVector;
 
   constructor(actorId: ActorId, start: T) {
     this._actorId = actorId;
     this._clock = 0;
     this._root = new RgaUnit([0, 0], start);
+    this._version = new VersionVector();
   }
 
   public insert(
@@ -49,7 +51,8 @@ export class Rga<T> {
               let next = prev.next;
               if (!next) return null;
 
-              if (idUtil.equal(next.id, rightId) || actorId < next.id[0]) return prev;
+              if (idUtil.equal(next.id, rightId) || actorId < next.id[0])
+                return prev;
               prev = next;
             }
           }
@@ -70,6 +73,8 @@ export class Rga<T> {
     let newUnit = new RgaUnit(unitId, contents);
     newUnit.next = tmpNext;
     prevUnit.next = newUnit;
+
+    this._version.nextVersion();
 
     return unitId;
   }
@@ -97,6 +102,8 @@ export class Rga<T> {
     }
 
     unit.isTombstone = true;
+
+    this._version.nextVersion();
   }
 
   public compact() {
@@ -110,6 +117,9 @@ export class Rga<T> {
         unit = unit.next;
       }
     }
+
+    this._version.nextVersion();
+    this._version.markCompaction();
   }
 
   public toString(): string {
@@ -127,6 +137,36 @@ export class Rga<T> {
     }
 
     return result;
+  }
+
+  public get version(): VersionVector {
+    return this._version;
+  }
+}
+
+export class VersionVector {
+  private _version: number;
+  private _lastCompaction: number;
+
+  constructor() {
+    this._version = 0;
+    this._lastCompaction = 0;
+  }
+
+  public nextVersion() {
+    this._version++;
+  }
+
+  public markCompaction() {
+    this._lastCompaction = this._version;
+  }
+
+  public get lastCompaction(): number {
+    return this._lastCompaction;
+  }
+
+  public get version(): number {
+    return this._version;
   }
 }
 
