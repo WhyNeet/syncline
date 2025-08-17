@@ -54,7 +54,7 @@ pub fn single_actor_rga_middle_insertion_works() {
 }
 
 #[test]
-pub fn multi_actor_rga_left_insertion_works() {
+pub fn multi_actor_rga_insertion_works() {
     let current_actor_id = 0;
     let other_actor_id = 1;
 
@@ -121,6 +121,61 @@ pub fn multi_actor_rga_left_insertion_works() {
             .is_some()
         );
         assert_eq!(rga.to_string(), "Habello");
+    }
+}
+
+#[test]
+pub fn multi_actor_rga_end_insertion_works() {
+    let current_actor_id = 0;
+    let other_actor_id = 1;
+
+    let mut rga = Rga::new(0);
+
+    // Insert "Hello" as current actor
+    let mut prev_id = (current_actor_id, 0);
+    for c in "Hello".chars() {
+        prev_id = {
+            let id = rga.insert(RgaInsertQuery::Right(prev_id), c, None, None);
+            assert!(id.is_some());
+            id.unwrap()
+        };
+    }
+
+    // Case 1:
+    // Edit on the end from current actor comes first, edit from last actor comes second
+    {
+        let mut rga = rga.clone();
+
+        assert!(
+            rga.insert(RgaInsertQuery::Right(prev_id), 't', None, None)
+                .is_some()
+        );
+        rga.insert(
+            RgaInsertQuery::Right(prev_id),
+            'h',
+            Some(other_actor_id),
+            None,
+        );
+        assert_eq!(rga.to_string(), "Helloth");
+    }
+
+    // Case 2:
+    // Edit on the end from current actor comes second, edit from last actor comes first
+    {
+        let mut rga = rga.clone();
+
+        assert!(
+            rga.insert(
+                RgaInsertQuery::Right(prev_id),
+                'h',
+                Some(other_actor_id),
+                None,
+            )
+            .is_some()
+        );
+
+        rga.insert(RgaInsertQuery::Right(prev_id), 't', None, None);
+        assert_eq!(rga.to_string(), "Helloth");
     }
 }
 
