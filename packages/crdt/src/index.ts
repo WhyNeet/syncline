@@ -79,6 +79,16 @@ export class Rga<T> {
     return unitId;
   }
 
+  public insertLast(unit: RgaUnit<T>) {
+    let last = this._root;
+
+    while (last.next !== null) {
+      last = last.next;
+    }
+
+    last.next = unit;
+  }
+
   public queryAt(index: number): RgaUnit<T> | null {
     let current = 0;
     let unit = this._root;
@@ -226,3 +236,5 @@ export class RgaUnit<T> {
     this._next = value;
   }
 }
+
+export * from "./store";
