@@ -173,9 +173,9 @@ impl<T: Default + Debug> Rga<T> {
         self.version.next_version();
     }
 
-    pub fn compact(&mut self) {
+    pub fn compact(&mut self) -> bool {
         if !self.is_dirty() {
-            return;
+            return false;
         }
 
         let mut unit = &mut self.root;
@@ -192,6 +192,8 @@ impl<T: Default + Debug> Rga<T> {
         self.version.next_version();
         self.version.mark_compaction();
         self.is_dirty = false;
+
+        true
     }
 
     pub fn is_dirty(&self) -> bool {
