@@ -1,24 +1,18 @@
-use std::{
-    sync::{
-        Mutex,
-        atomic::{AtomicU64, Ordering},
-    },
-    time::{SystemTime, UNIX_EPOCH},
+use std::sync::{
+    Mutex,
+    atomic::{AtomicU64, Ordering},
 };
 
-use crdt::Rga;
+use crdt::{Rga, VersionVector};
 use tokio::sync::broadcast;
 
 use crate::events::RealtimeEvent;
 
 const DOCUMENT_BROADCAST_CAPACITY: usize = 4096;
-// 60 seconds
-const DOCUMENT_COMPACTION_MIN_INTERVAL: u64 = 60000;
 
 pub struct Document {
     state: Mutex<Rga<char>>,
     max_actor_id: AtomicU64,
-    last_compaction: AtomicU64,
     sender: broadcast::Sender<RealtimeEvent>,
     receiver: broadcast::Receiver<RealtimeEvent>,
 }
@@ -31,7 +25,6 @@ impl Document {
             sender,
             max_actor_id: Default::default(),
             receiver,
-            last_compaction: Default::default(),
         }
     }
 
@@ -39,23 +32,11 @@ impl Document {
         action(&mut self.state.lock().unwrap())
     }
 
+    pub fn version(&self) -> VersionVector {
+        self.state.lock().unwrap().version()
+    }
+
     pub fn run_compaction(&self) {
-        if SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis() as u64
-            - self.last_compaction.load(Ordering::Relaxed)
-            < DOCUMENT_COMPACTION_MIN_INTERVAL
-        {
-            return;
-        }
-        self.last_compaction.store(
-            SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_millis() as u64,
-            Ordering::Relaxed,
-        );
         self.change(|state| state.compact());
     }
 

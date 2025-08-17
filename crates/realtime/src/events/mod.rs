@@ -1,4 +1,4 @@
-use crdt::{ActorId, RgaInsertQuery, RgaUnitId};
+use crdt::{ActorId, RgaInsertQuery, RgaUnitId, VersionVector};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -12,10 +12,12 @@ pub enum RealtimeEventKind {
     Delete {
         id: RgaUnitId,
     },
+    Compact,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RealtimeEvent {
     pub actor: ActorId,
+    pub version: VersionVector,
     pub kind: RealtimeEventKind,
 }

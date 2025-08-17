@@ -55,10 +55,10 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, id: String) {
                       break;
                   }
 
-                  let mut event: RealtimeEventKind =
+                  let mut event: RealtimeEvent =
                       serde_json::from_slice(msg.into_data().iter().as_slice()).unwrap();
 
-                  match &mut event {
+                  match &mut event.kind {
                       RealtimeEventKind::Insert {
                           id,
                           query,
@@ -70,14 +70,14 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, id: String) {
                       RealtimeEventKind::Delete { id } => document.change(|state| {
                           state.delete(*id);
                       }),
+                      RealtimeEventKind::Compact => continue
                   };
+
+                  event.version = document.version();
 
                   document
                       .sender()
-                      .send(RealtimeEvent {
-                          actor: actor_id,
-                          kind: event,
-                      })
+                      .send(event)
                       .unwrap();
               }
               _ = shutdown.recv() => break
@@ -87,6 +87,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, id: String) {
 
     let mut shutdown = shutdown_tx.subscribe();
     let send_doc = Arc::clone(&document);
+    let mut interval = tokio::time::interval(Duration::from_secs(60));
     let send_task = tokio::spawn(async move {
         let document = send_doc;
         let mut recv = document.sender().subscribe();
@@ -108,20 +109,13 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, id: String) {
                       .await
                       .unwrap();
               },
-              _ = shutdown.recv() => break
-            }
-        }
-    });
-
-    let mut shutdown = shutdown_tx.subscribe();
-    let mut interval = tokio::time::interval(Duration::from_secs(60));
-    let compact_doc = Arc::clone(&document);
-    tokio::spawn(async move {
-        let document = compact_doc;
-        loop {
-            tokio::select! {
               _ = interval.tick() => {
                 document.run_compaction();
+                sender.send(Message::Text(serde_json::to_string(&RealtimeEvent {
+                  kind: RealtimeEventKind::Compact,
+                  version: document.version(),
+                  actor: 0
+                }).unwrap().into())).await.unwrap();
               },
               _ = shutdown.recv() => break
             }
