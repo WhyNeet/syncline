@@ -39,6 +39,20 @@ impl<T: Default + Debug> Rga<T> {
         self.version
     }
 
+    pub fn insert_last(&mut self, unit: RgaUnit<T>) {
+        let last = {
+            let mut unit = &mut self.root;
+
+            while let Some(ref mut next) = unit.next {
+                unit = next;
+            }
+
+            unit
+        };
+
+        last.next = Some(Box::new(unit));
+    }
+
     pub fn insert(
         &mut self,
         query: RgaInsertQuery,
