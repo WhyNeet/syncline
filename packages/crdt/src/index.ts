@@ -27,7 +27,14 @@ export class Rga<T> {
         let unit = this._root;
 
         while (true) {
-          if (idUtil.equal(unit.id, id)) return unit;
+          if (idUtil.equal(unit.id, id)) {
+            let prev = unit;
+            while (true) {
+              if (prev.next === null || actorId <= prev.next.id[0]) return prev;
+
+              prev = prev.next;
+            }
+          }
 
           if (unit.next !== null) {
             unit = unit.next;
