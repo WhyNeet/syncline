@@ -1,6 +1,6 @@
 use crdt_store::RgaSerializer;
 use futures::{SinkExt, StreamExt};
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use axum::{
     extract::{
@@ -102,7 +102,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, id: String) {
 
     let mut shutdown = shutdown_tx.subscribe();
     let send_doc = Arc::clone(&document);
-    let mut interval = tokio::time::interval(Duration::from_secs(60));
+    let mut compaction_rx = document.on_compaction();
     let send_task = tokio::spawn(async move {
         let document = send_doc;
         let mut recv = document.sender().subscribe();
@@ -124,8 +124,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, id: String) {
                       .await
                       .unwrap();
               },
-              _ = interval.tick() => {
-                document.run_compaction();
+              _ = compaction_rx.recv() => {
                 sender.send(Message::Text(serde_json::to_string(&RealtimeEvent {
                   kind: RealtimeEventKind::Compact,
                   version: document.version(),

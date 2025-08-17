@@ -1,6 +1,9 @@
-use std::sync::{
-    Mutex,
-    atomic::{AtomicU64, Ordering},
+use std::{
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
+    },
+    time::Duration,
 };
 
 use crdt::{Rga, VersionVector};
@@ -11,20 +14,37 @@ use crate::events::RealtimeEvent;
 const DOCUMENT_BROADCAST_CAPACITY: usize = 4096;
 
 pub struct Document {
-    state: Mutex<Rga<char>>,
+    state: Arc<Mutex<Rga<char>>>,
     max_actor_id: AtomicU64,
     sender: broadcast::Sender<RealtimeEvent>,
     receiver: broadcast::Receiver<RealtimeEvent>,
+    compaction_sender: broadcast::Sender<()>,
 }
 
 impl Document {
     pub fn new(state: Rga<char>) -> Self {
         let (sender, receiver) = broadcast::channel(DOCUMENT_BROADCAST_CAPACITY);
+        let (compaction_sender, _) = broadcast::channel(DOCUMENT_BROADCAST_CAPACITY);
+        let state = Arc::new(Mutex::new(state));
+
+        let cs_clone = compaction_sender.clone();
+        let task_state = Arc::clone(&state);
+        tokio::spawn(async move {
+            let sender = cs_clone;
+            let mut interval = tokio::time::interval(Duration::from_secs(60));
+            loop {
+                interval.tick().await;
+                task_state.lock().unwrap().compact();
+                sender.send(()).unwrap();
+            }
+        });
+
         Self {
-            state: Mutex::new(state),
+            state,
             sender,
             max_actor_id: Default::default(),
             receiver,
+            compaction_sender,
         }
     }
 
@@ -36,8 +56,8 @@ impl Document {
         self.state.lock().unwrap().version()
     }
 
-    pub fn run_compaction(&self) {
-        self.change(|state| state.compact());
+    pub fn on_compaction(&self) -> broadcast::Receiver<()> {
+        self.compaction_sender.subscribe()
     }
 
     pub fn sender(&self) -> &broadcast::Sender<RealtimeEvent> {
