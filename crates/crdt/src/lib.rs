@@ -7,6 +7,8 @@ pub struct Rga<T: Debug> {
     root: Box<RgaUnit<T>>,
     clock: ActorClock,
     actor_id: ActorId,
+    version: VersionVector,
+    is_dirty: bool,
 }
 
 impl<T: Default + Debug> Rga<T> {
@@ -20,6 +22,8 @@ impl<T: Default + Debug> Rga<T> {
             }),
             clock: ActorClock::default(),
             actor_id,
+            version: VersionVector::default(),
+            is_dirty: false,
         }
     }
 
@@ -29,6 +33,10 @@ impl<T: Default + Debug> Rga<T> {
 
     pub fn clock(&self) -> ActorClock {
         self.clock
+    }
+
+    pub fn version(&self) -> VersionVector {
+        self.version
     }
 
     pub fn insert(
@@ -124,6 +132,8 @@ impl<T: Default + Debug> Rga<T> {
         };
         prev_unit.next.replace(Box::new(new_unit));
 
+        self.version.next_version();
+
         Some(unit_id)
     }
 
@@ -144,9 +154,16 @@ impl<T: Default + Debug> Rga<T> {
         }
 
         unit.is_tombstone = true;
+        self.is_dirty = true;
+
+        self.version.next_version();
     }
 
     pub fn compact(&mut self) {
+        if !self.is_dirty() {
+            return;
+        }
+
         let mut unit = &mut self.root;
 
         while let Some(next) = unit.next.as_mut() {
@@ -157,6 +174,14 @@ impl<T: Default + Debug> Rga<T> {
                 unit = next;
             }
         }
+
+        self.version.next_version();
+        self.version.mark_compaction();
+        self.is_dirty = false;
+    }
+
+    pub fn is_dirty(&self) -> bool {
+        self.is_dirty
     }
 }
 
@@ -179,6 +204,22 @@ impl<T: Default + Debug + Display> fmt::Display for Rga<T> {
         }
 
         Ok(())
+    }
+}
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VersionVector {
+    pub version: u64,
+    pub last_compaction: u64,
+}
+
+impl VersionVector {
+    fn next_version(&mut self) {
+        self.version += 1;
+    }
+
+    fn mark_compaction(&mut self) {
+        self.last_compaction = self.version;
     }
 }
 
