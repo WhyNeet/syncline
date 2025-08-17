@@ -1,4 +1,4 @@
-import { Rga, type RgaInsertQuery } from "crdt";
+import { Rga, RgaDeserializer, type RgaInsertQuery } from "crdt";
 import { createEffect, createSignal, onMount } from "solid-js";
 import { eventUtil, type IncomingEvent, type RealtimeEvent } from "./lib/event";
 
@@ -17,7 +17,7 @@ function App() {
       if (eventUtil.incoming.is.system(event)) {
         crdt = new Rga(event.actor_id, "");
         setActorId(event.actor_id);
-      } else if (crdt) {
+      } else if (crdt && actorId()) {
         const realtimeEvent = event as RealtimeEvent;
         if (realtimeEvent.version.last_compaction > crdt.version.lastCompaction) crdt.compact();
         switch (realtimeEvent.kind.kind) {
@@ -28,6 +28,9 @@ function App() {
             crdt.delete(realtimeEvent.kind.id);
             break;
           case "Compact":
+            break;
+          case "StateSync":
+            crdt = RgaDeserializer.from_array(realtimeEvent.kind.state, actorId()!, "");
             break;
         }
         textarea.value = crdt.toString();
