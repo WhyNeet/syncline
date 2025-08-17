@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 pub struct RgaSerializer;
 
 impl RgaSerializer {
-    pub fn to_vec<T: Debug + Default + Clone>(rga: Rga<T>) -> Vec<RgaStoreUnit<T>> {
+    pub fn to_vec<T: Debug + Default + Clone>(rga: &Rga<T>) -> Vec<RgaStoreUnit<T>> {
         let mut result = vec![];
 
         let mut unit = rga.root();
@@ -24,7 +24,7 @@ impl RgaSerializer {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct RgaStoreUnit<T: Debug> {
     pub id: RgaUnitId,
     pub contents: T,
