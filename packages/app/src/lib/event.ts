@@ -1,6 +1,15 @@
-import type { RgaInsertQuery, RgaUnitId } from "crdt";
+import type { ActorId, RgaInsertQuery, RgaUnitId } from "crdt";
 
-export type RealtimeEvent = RealtimeInsertEvent | RealtimeDeleteEvent;
+export interface RealtimeEvent {
+  kind: RealtimeEventKind,
+  version: {
+    version: number;
+    last_compaction: number;
+  },
+  actor: ActorId
+}
+
+export type RealtimeEventKind = RealtimeInsertEvent | RealtimeDeleteEvent | RealtimeCompactEvent;
 
 export interface RealtimeInsertEvent {
   kind: "Insert";
@@ -12,6 +21,10 @@ export interface RealtimeInsertEvent {
 export interface RealtimeDeleteEvent {
   kind: "Delete";
   id: RgaUnitId;
+}
+
+export interface RealtimeCompactEvent {
+  kind: "Compact";
 }
 
 export type IncomingEvent = RealtimeEvent | SystemEvent;

@@ -18,12 +18,16 @@ function App() {
         crdt = new Rga(event.actor_id, "");
         setActorId(event.actor_id);
       } else if (crdt) {
-        switch (event.kind) {
+        const realtimeEvent = event as RealtimeEvent;
+        if (realtimeEvent.version.last_compaction > crdt.version.lastCompaction) crdt.compact();
+        switch (realtimeEvent.kind.kind) {
           case "Insert":
-            crdt.insert(event.query, event.contents, event.id[0], event.id[1]);
+            crdt.insert(realtimeEvent.kind.query, realtimeEvent.kind.contents, realtimeEvent.kind.id[0], realtimeEvent.kind.id[1]);
             break;
           case "Delete":
-            crdt.delete(event.id);
+            crdt.delete(realtimeEvent.kind.id);
+            break;
+          case "Compact":
             break;
         }
         textarea.value = crdt.toString();
@@ -61,10 +65,17 @@ function App() {
         const data = event.data!.charAt(0);
         const id = crdt.insert(query, data, null, null);
         const wsEvent: RealtimeEvent = {
-          kind: "Insert",
-          id: id!,
-          contents: event.data!.charAt(0),
-          query,
+          actor: actorId()!,
+          kind: {
+            kind: "Insert",
+            id: id!,
+            contents: event.data!.charAt(0),
+            query,
+          },
+          version: {
+            version: crdt.version.version,
+            last_compaction: crdt.version.lastCompaction
+          }
         };
         ws.send(JSON.stringify(wsEvent));
         break;
@@ -73,8 +84,15 @@ function App() {
         const unit = crdt.queryAt(cursorPosition + 1)!;
         crdt.delete(unit.id);
         const wsEvent: RealtimeEvent = {
-          kind: "Delete",
-          id: unit.id
+          kind: {
+            kind: "Delete",
+            id: unit.id
+          },
+          actor: actorId()!,
+          version: {
+            version: crdt.version.version,
+            last_compaction: crdt.version.lastCompaction
+          }
         };
         ws.send(JSON.stringify(wsEvent));
       }
