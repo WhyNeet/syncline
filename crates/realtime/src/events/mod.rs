@@ -1,4 +1,5 @@
 use crdt::{ActorId, RgaInsertQuery, RgaUnitId, VersionVector};
+use crdt_store::RgaStoreUnit;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -13,6 +14,9 @@ pub enum RealtimeEventKind {
         id: RgaUnitId,
     },
     Compact,
+    StateSync {
+        state: Vec<RgaStoreUnit<char>>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

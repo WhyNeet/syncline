@@ -1,3 +1,4 @@
+use crdt_store::RgaSerializer;
 use futures::{SinkExt, StreamExt};
 use std::{sync::Arc, time::Duration};
 
@@ -36,6 +37,20 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, id: String) {
         ))
         .await
         .unwrap();
+
+    sender
+        .send(Message::text(
+            serde_json::to_string(&RealtimeEvent {
+                actor: 0,
+                kind: RealtimeEventKind::StateSync {
+                    state: document.change(|state| RgaSerializer::to_vec(state)),
+                },
+                version: document.version(),
+            })
+            .unwrap(),
+        ))
+        .await
+        .unwrap();
     let (shutdown_tx, _) = tokio::sync::broadcast::channel::<()>(1);
 
     let mut shutdown = shutdown_tx.subscribe();
@@ -70,7 +85,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, id: String) {
                       RealtimeEventKind::Delete { id } => document.change(|state| {
                           state.delete(*id);
                       }),
-                      RealtimeEventKind::Compact => continue
+                      _ => continue,
                   };
 
                   event.version = document.version();
@@ -104,7 +119,7 @@ async fn handle_socket(socket: WebSocket, state: Arc<AppState>, id: String) {
 
                   sender
                       .send(Message::Text(
-                          serde_json::to_string(&event.kind).unwrap().into(),
+                          serde_json::to_string(&event).unwrap().into(),
                       ))
                       .await
                       .unwrap();

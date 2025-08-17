@@ -28,7 +28,7 @@ impl Document {
         }
     }
 
-    pub fn change(&self, action: impl FnOnce(&mut Rga<char>)) {
+    pub fn change<R>(&self, action: impl FnOnce(&mut Rga<char>) -> R) -> R {
         action(&mut self.state.lock().unwrap())
     }
 
